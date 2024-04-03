@@ -1,0 +1,199 @@
+{
+    "name": "container_dbt_fabric",
+    "properties": {
+        "activities": [
+            {
+                "name": "start_container",
+                "type": "WebActivity",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "url": {
+                        "value": "@concat(\n    variables('base_url')\n    ,variables('container_instance')\n    ,'/start?api-version=2023-05-01'\n)",
+                        "type": "Expression"
+                    },
+                    "method": "POST",
+                    "body": "\"\"",
+                    "authentication": {
+                        "type": "MSI",
+                        "resource": "https://management.azure.com/"
+                    }
+                }
+            },
+            {
+                "name": "wait_for_container_to_terminate",
+                "type": "Until",
+                "dependsOn": [
+                    {
+                        "activity": "start_container",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@equals(variables('container_state'), 'Terminated')",
+                        "type": "Expression"
+                    },
+                    "activities": [
+                        {
+                            "name": "wait_30_seconds",
+                            "type": "Wait",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "waitTimeInSeconds": 30
+                            }
+                        },
+                        {
+                            "name": "check_container_state",
+                            "type": "WebActivity",
+                            "dependsOn": [
+                                {
+                                    "activity": "wait_30_seconds",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "0.12:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "url": {
+                                    "value": "@concat(\n    variables('base_url')\n    ,variables('container_instance')\n    ,'?api-version=2023-05-01'\n)",
+                                    "type": "Expression"
+                                },
+                                "method": "GET",
+                                "body": "\"\"",
+                                "authentication": {
+                                    "type": "MSI",
+                                    "resource": "https://management.azure.com/"
+                                }
+                            }
+                        },
+                        {
+                            "name": "set_container_state",
+                            "type": "SetVariable",
+                            "dependsOn": [
+                                {
+                                    "activity": "check_container_state",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "0.12:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "variableName": "container_state",
+                                "value": {
+                                    "value": "@activity('check_container_state').output.properties.containers[0].properties.instanceView.currentState.state",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        {
+                            "name": "set_container_status",
+                            "type": "SetVariable",
+                            "dependsOn": [
+                                {
+                                    "activity": "check_container_state",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "0.12:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "variableName": "container_status",
+                                "value": {
+                                    "value": "@activity('check_container_state').output.properties.containers[0].properties.instanceView.currentState.detailStatus",
+                                    "type": "Expression"
+                                }
+                            }
+                        }
+                    ],
+                    "timeout": "0.00:10:00"
+                }
+            },
+            {
+                "name": "check_for_failure",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {
+                        "activity": "wait_for_container_to_terminate",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@equals(variables('container_status'), 'Error')",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "fail_pipeline",
+                            "type": "Fail",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "message": "dbt run failed",
+                                "errorCode": "400"
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "variables": {
+            "base_url": {
+                "type": "String",
+                "defaultValue": ""
+            },
+            "container_state": {
+                "type": "String",
+                "defaultValue": "Waiting"
+            },
+            "container_status": {
+                "type": "String",
+                "defaultValue": "Waiting to run"
+            },
+            "container_instance": {
+                "type": "String",
+                "defaultValue": ""
+            }
+        },
+        "annotations": []
+    }
+}

@@ -1,0 +1,6 @@
+services:
+  dbt:
+    build: .
+    tty: true
+    env_file:
+      - .env

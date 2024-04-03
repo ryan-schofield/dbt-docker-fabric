@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: raw
+    database: warehouse_mssql
+    schema: raw
+
+    quoting:
+      database: false
+      schema: false
+      identifier: false
+      
+    tables:
+      - name: unicorn

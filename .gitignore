@@ -1,0 +1,13 @@
+.env
+.venv
+.vscode
+
+target/
+dbt_packages/
+logs/
+tmp/
+data/
+sources/
+.user.yml
+
+remove_env.ps1
