@@ -55,39 +55,12 @@
 1. *Note: Your container will start and run any provided commands as soon as the instance has been created. In most scenarios, this means your dbt job will run and the container will shut down once the job has completed.*
 
 ## Set up CI/CD with Azure DevOps Pipelines
-1. Update the last line of `devops/update_container.ps1` to match the name of your Azure Resource Group.
-1. Update the following in `devops/container_app_config.yml`:
-    - **name**: The name of your container instance
-    - **location**: The Azure region for your container instance
-    - **<span>containers.name</span>**: The name of your container
-    - **containers.environmentVariables**: Any environment variables you are using in your dbt project.
-    - **containers.image**: The full path to your image in Azure Container Registry, including container name and tag.
-    - **imageRegistryCredentials**: The server, username and password (this should reference the previously created `.env` value) for your Azure Container Registry.
-1. Add any changes to the remote repository.
-1. Open your project in Azure DevOps and click *Project settings* to [create a service connection for Azure Pipelines](https://learn.microsoft.com/en-us/azure/devops/pipelines/library/service-endpoints?view=azure-devops&tabs=yaml#create-a-service-connection).
-    - When creating the service connection, select **Azure Resource Manager** as the service connection type.
-        - *Note: If an existing **Azure Resource Manager** connection already exists, you may be able to use it for this pipeline.*
 1. Click on **Pipelines** in the left menu and select **New Pipeline**.
 1. Select **Azure Repos Git** as the source.
 1. Select the repository you want to use.
 1. Select **Docker - Build and push an image to Azure Container Registry** as the template.
 1. Select the **Container Registry** you want to use and update the Image Repository field to match the name of your image.
-1. Once the `.yml` file has been created, click the **Show assistant** button to add a new task:
-1. Select **Azure CLI** as the task type and add the following values.
-    - **Azure Resource Manager connection**: Select the service connection you created earlier
-    - **Script type**: PowerShell Core
-    - **Script location**: Script path
-    - **Script Path**: `devops/update_container.ps1`
-1. Add the task to the pipeline.
-1. Click on the **Variables** button and add any environment variables you are using in your project.
-1. **Important**: *Any values where you select **Keep this value secret** will need to be mapped in order to be accessed by the Azure CLI task. For these variables you will want to use a different name than the one in your `.env` file*
-1. Add the mappings to any secret variables in the directly to your pipeline yaml Azure CLI task in the following format:
-``` yaml
-    - task: AzureCLI@2
-      env: 
-        VARIABLE_NAME_IN_.ENV: $(VARIABLE_NAME_IN_PIPELINE) 
-```
-16. Optional: Update the `trigger` value in the pipeline yaml file to only trigger when dbt changes are pushed to the repository using:
+1. Optional: Update the `trigger` value in the pipeline yaml file to only trigger when dbt changes are pushed to the repository using:
 ``` yaml
 trigger:
   branches:
@@ -99,9 +72,9 @@ trigger:
 ```
 17. Click **Save** to commit your changes and create the pipeline.
 
-## Use Azure Data Factory to trigger dbt
+## Use Azure Data Factory/Fabric Data Pipelines to trigger dbt
 ![ADF Pipeline](img/adf-pipeline.png)
-1. From your Container Instance resource in the Azure Portal, select **Access Control (IAM)** and add your Data Factory managed identity as a **Contributor**.
+1. From your Container Instance resource in the Azure Portal, select **Access Control (IAM)** and add your Fabric workspace identity or Azure Data Factory managed identity as a **Contributor**.
 1. From Data Factory, add a **Web** activity to start the container with the following settings:
     - URL: `https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ContainerInstance/containerGroups/{containerGroupName}/start?api-version=2021-03-01`
     - Method: POST
