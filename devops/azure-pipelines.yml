@@ -11,7 +11,7 @@ resources:
 
 variables:
   # Container registry service connection established during pipeline creation
-  dockerRegistryServiceConnection: '53b86d18-619d-4c10-9332-4a0950a0cf95'
+  dockerRegistryServiceConnection: ''
   imageRepository: 'dbt-docker-fabric'
   containerRegistry: $(registryServer)
   dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
@@ -37,23 +37,3 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           prod
-
-- stage: Deploy
-  displayName: Deploy to prod
-  jobs:
-  - job: Deploy
-    displayName: Deploy
-    pool:
-      vmImage: $(vmImageName)
-    steps:
-    - task: AzureCLI@2
-      displayName: Update container app
-      env: 
-        DBT_ENV_SECRET_FABRIC_USER: $(DBT_FABRIC_USER)
-        DBT_ENV_SECRET_FABRIC_PASSWORD: $(DBT_FABRIC_PASSWORD)
-        MAPPED_REGISTRY_PASSWORD: $(REGISTRY_PASSWORD)       
-      inputs:
-        azureSubscription: 'azure-arm-guides-and-docs'
-        scriptType: 'pscore'
-        scriptLocation: 'scriptPath'
-        scriptPath: 'devops/update_container.ps1'          
