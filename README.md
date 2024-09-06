@@ -70,7 +70,7 @@ trigger:
     include:
       - dbt/*
 ```
-17. Click **Save** to commit your changes and create the pipeline.
+7. Click **Save** to commit your changes and create the pipeline.
 
 ## Use Azure Data Factory/Fabric Data Pipelines to trigger dbt
 ![ADF Pipeline](img/adf-pipeline.png)
